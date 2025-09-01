@@ -98,7 +98,8 @@ ALLOWED_CASE_STATUS_TRANSITIONS = {
         Case.Status.ARCHIVED,
         Case.Status.INVESTIGATING,
     },  # allow reopen to investigating
-    Case.Status.ARCHIVED: set(),  # terminal
+    # Allow re-closing if mistakenly archived, treat archive as reversible admin state.
+    Case.Status.ARCHIVED: {Case.Status.CLOSED},
 }
 
 

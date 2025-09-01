@@ -209,6 +209,14 @@ class IncidentDetailView(LoginRequiredMixin, DetailView):
     template_name = "incident_detail.html"
     context_object_name = "incident"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # Provide candidate lead investigators (staff users) for dropdown
+        ctx["lead_investigator_candidates"] = User.objects.filter(
+            is_staff=True
+        ).order_by("username")[:200]
+        return ctx
+
 
 @login_required
 def incident_escalate_view(request, pk: int):
@@ -360,6 +368,11 @@ class CaseDetailView(LoginRequiredMixin, DetailView):
     model = Case
     template_name = "case_detail.html"
     context_object_name = "case"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["all_people"] = Person.objects.order_by("last_name", "first_name")[:500]
+        return ctx
 
 
 class PersonListView(LoginRequiredMixin, ListView):

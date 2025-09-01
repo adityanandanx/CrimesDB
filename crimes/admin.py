@@ -1,4 +1,7 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.urls import path
+from django.shortcuts import redirect
+from django.core.management import call_command
 from .models import (
     Incident,
     Case,
@@ -11,8 +14,40 @@ from .models import (
 )
 
 
+class SeedAdminSiteMixin:
+    """Mixin to add a 'Seed Demo Data' button on change list of Incident (or any)"""
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "seed-demo-data/",
+                self.admin_site.admin_view(self.seed_demo_view),
+                name="seed-demo-data",
+            ),
+        ]
+        return custom + urls
+
+    def seed_demo_view(self, request):
+        if not request.user.is_staff:
+            return redirect("admin:index")
+        try:
+            call_command("generate_demo_data", incidents=5, people=10)
+            messages.success(request, "Demo data generated.")
+        except Exception as e:
+            messages.error(request, f"Error generating demo data: {e}")
+        return redirect("..")
+
+    def changelist_view(self, request, extra_context=None):
+        extra = extra_context or {}
+        from django.urls import reverse
+
+        extra["seed_demo_url"] = reverse("admin:seed-demo-data")
+        return super().changelist_view(request, extra_context=extra)
+
+
 @admin.register(Incident)
-class IncidentAdmin(admin.ModelAdmin):
+class IncidentAdmin(SeedAdminSiteMixin, admin.ModelAdmin):
     list_display = ("id", "title", "status", "reported_by", "created_at")
     search_fields = ("title", "description")
     list_filter = ("status",)

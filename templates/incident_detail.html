@@ -4,8 +4,18 @@
 <p>Status: {{ incident.status }}</p>
 {% if incident.status != 'escalated' %}
 <form method="post" action="{% url 'incident-escalate' incident.id %}">
-  {% csrf_token %} Lead Investigator User ID:
-  <input type="number" name="lead_investigator_user_id" required />
+  {% csrf_token %}
+  <label for="lead_investigator_user_id">Lead Investigator:</label>
+  <select
+    name="lead_investigator_user_id"
+    id="lead_investigator_user_id"
+    required
+  >
+    <option value="">-- choose --</option>
+    {% for u in lead_investigator_candidates %}
+    <option value="{{ u.id }}">{{ u.username }} ({{ u.role }})</option>
+    {% endfor %}
+  </select>
   <button type="submit">Escalate</button>
 </form>
 {% endif %} {% endblock %}
