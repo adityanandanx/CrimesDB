@@ -11,16 +11,34 @@ uv run python manage.py runserver 0.0.0.0:8000
 
 ## Postgres (Docker) Setup
 
-The project now supports Postgres via Docker.
+The project supports Postgres via Docker. Two approaches:
+
+### A. Dev (live reload, runserver)
+
+Uses `docker-compose.yml` (overrides the image CMD):
 
 ```bash
 docker compose up -d --build
-# Run migrations inside the web container
-docker compose exec web uv run python manage.py migrate
+docker compose exec web uv run python manage.py migrate  # first time / after model changes
 docker compose exec web uv run python manage.py createsuperuser --username admin --email admin@example.com
 ```
 
-Environment variables (with defaults) used in `settings.py`:
+### B. Production-like (Gunicorn, auto migrate, wait for DB)
+
+If you build the image and run it directly (not overriding CMD) it will:
+
+1. Wait for Postgres (`wait_for_db.py`)
+2. Run `migrate`
+3. Optionally create a superuser (if env vars set, see below)
+4. Start Gunicorn
+
+### Environment Variable Precedence
+
+1. `DATABASE_URL` (e.g. `postgres://user:pass@host:5432/dbname?sslmode=require`)
+2. Individual `POSTGRES_*` variables (legacy compose dev)
+3. Fallback to SQLite when `DB_ENGINE=django.db.backends.sqlite3`
+
+Defaults used when individual vars not supplied:
 
 ```
 POSTGRES_DB=criminal
@@ -30,25 +48,36 @@ POSTGRES_HOST=db
 POSTGRES_PORT=5432
 ```
 
-Fallback: Set `DB_ENGINE=django.db.backends.sqlite3` to force SQLite.
+### Automatic Superuser Creation
+
+On container start the script `create_superuser.py` runs. If these are set it will create (once):
+
+```
+DJANGO_SUPERUSER_USERNAME
+DJANGO_SUPERUSER_PASSWORD
+DJANGO_SUPERUSER_EMAIL (optional, default admin@example.com)
+DJANGO_SUPERUSER_ROLE=admin (optional)
+```
+
+Remove or clear the password env var after first successful deploy for security.
 
 ## Deploying to Render.com
 
-1. Push this repository to GitHub.
-2. In Render create a new Web Service pointing at the repo.
-3. Choose Docker for runtime (Dockerfile is provided).
-4. Set environment variables:
-   - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST` (if using Render Postgres add-on; host will be provided)
-   - `POSTGRES_PORT=5432`
+1. Push repository to GitHub.
+2. Create a Managed Postgres instance in Render (note the Internal Database URL).
+3. Create a new Web Service (Docker) for this repo.
+4. Set environment variables (minimum):
+   - `DATABASE_URL=<Render Internal Database URL>` (already includes sslmode)
    - `DJANGO_SECRET_KEY=<generate secure key>`
    - `DJANGO_DEBUG=false`
-   - `ALLOWED_HOSTS=<your-render-service-hostname>` (or `*` for quick test)
-5. Render will build the image with the Dockerfile. The container entrypoint runs migrations automatically, then starts Gunicorn.
-6. After first deploy, create a superuser (one-off shell): Settings -> Shell -> `uv run python manage.py createsuperuser` OR temporarily add an init command.
+   - `ALLOWED_HOSTS=<your-service.onrender.com>`
+   - (Optional first deploy) `DJANGO_SUPERUSER_USERNAME=admin` `DJANGO_SUPERUSER_PASSWORD=strongpass` `DJANGO_SUPERUSER_EMAIL=admin@example.com`
+5. Deploy. Logs should show: DB wait -> migrations -> superuser creation -> Gunicorn start.
+6. After confirming superuser created, remove the `DJANGO_SUPERUSER_PASSWORD` (and optionally the username/email) env vars and redeploy.
 
-Static Files: Served directly by WhiteNoise (compressed manifest). Run `collectstatic` occurs in build. If you change static assets, trigger a new deploy.
+Static Files: Served by WhiteNoise (compressed manifest). `collectstatic` occurs during build.
 
-Health Check: Optionally configure Render health check path `/admin/login/`.
+Health Check: You can set `/admin/login/` as a health check path or create a lightweight ping view later.
 
 ## Features
 
@@ -145,11 +174,20 @@ Tests cover escalation, status history, evidence audit, API flow.
 ## Command Summary
 
 ```bash
+# Local (SQLite)
 uv sync
 uv run python manage.py migrate
 uv run python manage.py createsuperuser --username admin --email admin@example.com
 uv run python manage.py runserver 0.0.0.0:8000
+
+# Docker compose dev (Postgres)
+docker compose up -d --build
+docker compose exec web uv run python manage.py migrate
+
+# Tests
 uv run python manage.py test crimes
+
+# Data utilities
 uv run python manage.py refresh_case_counts
 uv run python manage.py generate_demo_data --incidents 10 --people 20
 ```
