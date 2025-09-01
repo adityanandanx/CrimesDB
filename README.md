@@ -32,6 +32,24 @@ POSTGRES_PORT=5432
 
 Fallback: Set `DB_ENGINE=django.db.backends.sqlite3` to force SQLite.
 
+## Deploying to Render.com
+
+1. Push this repository to GitHub.
+2. In Render create a new Web Service pointing at the repo.
+3. Choose Docker for runtime (Dockerfile is provided).
+4. Set environment variables:
+   - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST` (if using Render Postgres add-on; host will be provided)
+   - `POSTGRES_PORT=5432`
+   - `DJANGO_SECRET_KEY=<generate secure key>`
+   - `DJANGO_DEBUG=false`
+   - `ALLOWED_HOSTS=<your-render-service-hostname>` (or `*` for quick test)
+5. Render will build the image with the Dockerfile. The container entrypoint runs migrations automatically, then starts Gunicorn.
+6. After first deploy, create a superuser (one-off shell): Settings -> Shell -> `uv run python manage.py createsuperuser` OR temporarily add an init command.
+
+Static Files: Served directly by WhiteNoise (compressed manifest). Run `collectstatic` occurs in build. If you change static assets, trigger a new deploy.
+
+Health Check: Optionally configure Render health check path `/admin/login/`.
+
 ## Features
 
 - Custom user with roles (admin, officer, investigator, viewer)
