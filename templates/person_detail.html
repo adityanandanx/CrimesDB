@@ -1,0 +1,17 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Person #{{ person.id }}</h1>
+<p><strong>Name:</strong> {{ person.first_name }} {{ person.last_name }}</p>
+<p><strong>DOB:</strong> {{ person.date_of_birth|default:'-' }}</p>
+<h2>Cases</h2>
+<ul>
+  {% for cp in person.person_cases.all %}
+  <li>
+    <a href="{% url 'case-detail' cp.case.id %}">{{ cp.case.case_number }}</a>
+    ({{ cp.role }})
+  </li>
+  {% empty %}
+  <li>No linked cases.</li>
+  {% endfor %}
+</ul>
+<a href="/people/">Back to list</a>
+{% endblock %}

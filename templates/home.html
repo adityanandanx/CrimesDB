@@ -1,0 +1,13 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Welcome</h1>
+<p>This is the Criminal Case Management prototype.</p>
+<p>
+  {% if user.is_authenticated %} Go to <a href="/dashboard/">Dashboard</a>. {%
+  else %} Please <a href="/login/">login</a> to continue. {% endif %}
+</p>
+<ul>
+  <li><a href="/incidents/">Incidents</a></li>
+  <li><a href="/cases/">Cases</a></li>
+  <li><a href="/reports/case-summary">Reports</a></li>
+</ul>
+{% endblock %}

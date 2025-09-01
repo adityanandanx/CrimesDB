@@ -1,0 +1,112 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Dashboard</h1>
+<p class="muted">As of {{ now }}</p>
+<div class="grid">
+  <div class="card">
+    <h3>Cases</h3>
+    <ul>
+      {% for row in case_counts %}
+      <li>{{ row.status }}: {{ row.c }}</li>
+      {% empty %}
+      <li>None</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Incidents</h3>
+    <ul>
+      {% for row in incident_counts %}
+      <li>{{ row.status }}: {{ row.c }}</li>
+      {% empty %}
+      <li>None</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Evidence Items</h3>
+    <p>{{ evidence_total }}</p>
+  </div>
+  <div class="card">
+    <h3>People</h3>
+    <p>{{ people_total }}</p>
+  </div>
+  <div class="card">
+    <h3>Avg Evidence / Case</h3>
+    <p>{{ avg_evidence|floatformat:2 }}</p>
+  </div>
+</div>
+
+<h2>Recent Cases</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Case #</th>
+      <th>Title</th>
+      <th>Status</th>
+      <th>Lead</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in recent_cases %}
+    <tr>
+      <td><a href="/cases/{{ c.id }}/">{{ c.case_number }}</a></td>
+      <td>{{ c.title }}</td>
+      <td>{{ c.status }}</td>
+      <td>{{ c.lead_investigator }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4">No cases</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Recent Incidents</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Title</th>
+      <th>Status</th>
+      <th>Reporter</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in recent_incidents %}
+    <tr>
+      <td><a href="/incidents/{{ i.id }}/">{{ i.id }}</a></td>
+      <td>{{ i.title }}</td>
+      <td>{{ i.status }}</td>
+      <td>{{ i.reported_by }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4">No incidents</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Recent People</h2>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in recent_people %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>{{ p.first_name }} {{ p.last_name }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="2">No people</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

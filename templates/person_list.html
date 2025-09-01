@@ -1,0 +1,41 @@
+{% extends 'base.html' %} {% block content %}
+<h1>People</h1>
+<p><a class="btn" href="/people/new/">New Person</a></p>
+<form method="get" style="margin-bottom: 12px">
+  <input
+    type="text"
+    name="q"
+    placeholder="Search name"
+    value="{{ request.GET.q }}"
+  />
+  <button type="submit">Search</button>
+</form>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>DOB</th>
+      <th>Cases</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in people %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>
+        <a href="{% url 'person-detail' p.id %}"
+          >{{ p.first_name }} {{ p.last_name }}</a
+        >
+      </td>
+      <td>{{ p.date_of_birth|default:'-' }}</td>
+      <td>{{ p.person_cases.count }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4">No people.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

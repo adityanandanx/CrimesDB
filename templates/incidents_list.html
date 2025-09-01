@@ -1,0 +1,15 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Incidents</h1>
+<a href="/incidents/new/">New Incident</a>
+<ul>
+  {% for inc in incidents %}
+  <li>
+    <a href="{% url 'incident-detail' inc.id %}"
+      >#{{ inc.id }} {{ inc.title }} ({{ inc.status }})</a
+    >
+  </li>
+  {% empty %}
+  <li>No incidents.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

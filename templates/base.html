@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Criminal Case Management</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #0f172a url("/static/img/bg.svg") center/cover fixed;
+        min-height: 100vh;
+      }
+      main {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(2px);
+      }
+      nav {
+        background: #222;
+        color: #fff;
+        padding: 10px 16px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+      nav a {
+        color: #ddd;
+        text-decoration: none;
+      }
+      nav a:hover {
+        color: #fff;
+      }
+      .brand {
+        font-weight: bold;
+        color: #6ab0ff;
+      }
+      .user-badge {
+        margin-left: auto;
+        font-size: 0.9em;
+        opacity: 0.85;
+      }
+      main {
+        max-width: 1000px;
+        margin: 24px auto;
+        background: #fff;
+        padding: 24px 28px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+      }
+      h1,
+      h2,
+      h3 {
+        margin-top: 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+      }
+      table th,
+      table td {
+        border: 1px solid #e2e2e2;
+        padding: 6px 8px;
+        text-align: left;
+      }
+      .grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        margin: 18px 0;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #e0e5ec;
+        padding: 14px 16px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .muted {
+        color: #666;
+      }
+      .btn {
+        display: inline-block;
+        background: #2563eb;
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .btn:hover {
+        background: #1d4ed8;
+      }
+      form.inline {
+        display: inline;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a class="brand" href="/dashboard/">CaseMgr</a>
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/incidents/">Incidents</a>
+      <a href="/cases/">Cases</a>
+      <a href="/people/">People</a>
+      <a href="/reports/case-summary">Reports</a>
+      {% if user.is_authenticated %}
+      <span class="user-badge"
+        >{{ user.username }} ({{ user.role }}) |
+        <a href="/logout/">Logout</a></span
+      >
+      {% else %}
+      <span class="user-badge"><a href="/login/">Login</a></span>
+      {% endif %}
+    </nav>
+    <main>
+      {% if messages %}
+      <ul>
+        {% for m in messages %}
+        <li>{{ m }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %} {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

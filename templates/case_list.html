@@ -1,0 +1,25 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Cases</h1>
+<form method="get">
+  Filter status:
+  <select name="status">
+    <option value="">All</option>
+    <option value="open">Open</option>
+    <option value="investigating">Investigating</option>
+    <option value="closed">Closed</option>
+    <option value="archived">Archived</option>
+  </select>
+  <button type="submit">Apply</button>
+</form>
+<ul>
+  {% for case in cases %}
+  <li>
+    <a href="{% url 'case-detail' case.id %}"
+      >{{ case.case_number }} - {{ case.title }} ({{ case.status }})</a
+    >
+  </li>
+  {% empty %}
+  <li>No cases.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

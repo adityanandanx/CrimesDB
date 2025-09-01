@@ -1,0 +1,27 @@
+{% extends 'base.html' %} {% block content %}
+<h1>Case Summary Report</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Case #</th>
+      <th>Status</th>
+      <th>Evidence Count</th>
+      <th>People Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.case_number }}</td>
+      <td>{{ r.status }}</td>
+      <td>{{ r.evidence_count }}</td>
+      <td>{{ r.people_count }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="4">No data</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

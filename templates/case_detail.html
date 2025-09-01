@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .case-header {display:flex;flex-wrap:wrap;align-items:center;gap:1rem;justify-content:space-between;margin-bottom:1rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.85);border-radius:8px;backdrop-filter:blur(4px);} 
+  .status-badge {padding:0.35rem 0.65rem;border-radius:999px;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:#444;color:#fff;}
+  .status-open {background:#1e88e5;}
+  .status-investigating {background:#fb8c00;}
+  .status-closed {background:#43a047;}
+  .status-archived {background:#616161;}
+  .inline-edit {cursor:pointer;position:relative;padding:2px 4px;border-radius:4px;}
+  .inline-edit:hover {background:rgba(0,0,0,0.05);} 
+  .tabs {display:flex;gap:0.5rem;margin:1rem 0;flex-wrap:wrap;}
+  .tabs button {border:none;background:#e0e0e0;padding:0.5rem 0.9rem;border-radius:6px;cursor:pointer;font-weight:500;}
+  .tabs button.active {background:#1976d2;color:#fff;}
+  .tab-panel {display:none;animation:fade .25s ease-in;}
+  .tab-panel.active {display:block;}
+  @keyframes fade {from {opacity:0;translate:0 4px;} to {opacity:1;translate:0 0;}}
+  .card {background:rgba(255,255,255,0.9);padding:1rem;border-radius:10px;margin-bottom:1rem;box-shadow:0 2px 4px rgba(0,0,0,0.06);} 
+  form.inline {display:inline;} 
+  .flex {display:flex;gap:1rem;flex-wrap:wrap;} 
+  .grow {flex:1 1 300px;} 
+  table {width:100%;border-collapse:collapse;font-size:0.9rem;} 
+  th,td {padding:6px 8px;border-bottom:1px solid #ddd;} 
+  th {text-align:left;background:#f5f5f5;} 
+  .actions-bar {display:flex;gap:0.5rem;flex-wrap:wrap;} 
+  .actions-bar button {border:none;border-radius:6px;padding:0.45rem 0.75rem;cursor:pointer;font-weight:500;} 
+  .btn {background:#1976d2;color:#fff;} .btn-alt {background:#555;color:#fff;} .btn-danger {background:#c62828;color:#fff;} .btn-warn {background:#ef6c00;color:#fff;} .btn-success {background:#2e7d32;color:#fff;}
+  .small-note {font-size:0.75rem;color:#555;margin-top:4px;}
+  .muted {color:#666;font-size:0.85rem;}
+  .list-unstyled {list-style:none;padding:0;margin:0;}
+  .list-unstyled li {padding:4px 0;border-bottom:1px solid #eee;}
+  .badge-role {background:#eceff1;border-radius:4px;padding:2px 6px;font-size:0.7rem;text-transform:uppercase;letter-spacing:.5px;margin-left:6px;}
+  .toast {position:fixed;bottom:1rem;right:1rem;background:#323232;color:#fff;padding:0.75rem 1rem;border-radius:6px;opacity:0;transform:translateY(8px);transition:.25s;} 
+  .toast.show {opacity:1;transform:translateY(0);} 
+</style>
+
+<div class="case-header">
+  <div style="flex:1 1 auto;min-width:280px;">
+    <h1 style="margin:0;font-size:1.6rem;line-height:1.2;">
+      <span class="muted">{{ case.case_number }}</span><br>
+      <span id="case-title" class="inline-edit" data-field="title" title="Click to edit">{{ case.title|default:'(No Title)' }}</span>
+    </h1>
+    <div class="muted" style="margin-top:4px;">Incident: {{ case.incident.title }}</div>
+  </div>
+  <div style="text-align:right;">
+    <div class="status-badge status-{{ case.status }}" id="statusBadge">{{ case.status }}</div>
+    <div class="small-note" style="margin-top:4px;">Lead: {{ case.lead_investigator|default:'—' }}</div>
+  </div>
+</div>
+
+<div class="actions-bar card">
+  <form class="inline" method="post" action="/api/cases/{{ case.id }}/status/" onsubmit="return changeStatus(this);">
+    {% csrf_token %}
+    <select name="status" style="padding:4px 6px;">
+      <option value="open" {% if case.status == 'open' %}selected{% endif %}>Open</option>
+      <option value="investigating" {% if case.status == 'investigating' %}selected{% endif %}>Investigating</option>
+      <option value="closed" {% if case.status == 'closed' %}selected{% endif %}>Closed</option>
+      <option value="archived" {% if case.status == 'archived' %}selected{% endif %}>Archived</option>
+    </select>
+    <input name="reason" placeholder="Reason" style="padding:4px 6px;min-width:140px;" />
+    <button class="btn" type="submit">Update Status</button>
+  </form>
+  {% if case.status != 'closed' %}
+  <form class="inline" method="post" action="{% url 'case-close' case.id %}">
+    {% csrf_token %}
+    <input name="reason" placeholder="Close reason" style="padding:4px 6px;" />
+    <button class="btn-danger" type="submit">Close Case</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="tabs" id="caseTabs">
+  <button data-tab="overview" class="active">Overview</button>
+  <button data-tab="people">People ({{ case.case_people.count }})</button>
+  <button data-tab="evidence">Evidence ({{ case.evidence_items.count }})</button>
+  <button data-tab="history">History</button>
+</div>
+
+<div id="tab-overview" class="tab-panel active">
+  <div class="card">
+    <h2 style="margin-top:0;">Description</h2>
+    <div id="case-description" class="inline-edit" data-field="description" title="Click to edit">{{ case.description|linebreaksbr|default:'(No description)' }}</div>
+    <p class="small-note">Click text above to edit.</p>
+  </div>
+</div>
+
+<div id="tab-people" class="tab-panel">
+  <div class="card flex">
+    <div class="grow">
+      <h2 style="margin-top:0;">People</h2>
+      <ul class="list-unstyled">
+        {% for cp in case.case_people.all %}
+        <li>
+          <a href="{% url 'person-detail' cp.person.id %}">{{ cp.person }}</a>
+          <span class="badge-role">{{ cp.role }}</span>
+        </li>
+        {% empty %}
+        <li class="muted">No people linked.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div style="flex:1 1 240px;max-width:340px;">
+      <h3 style="margin-top:0;">Add / Link Person</h3>
+      <form method="post" action="{% url 'case-add-person' case.id %}" class="vertical-form">
+        {% csrf_token %}
+        <label style="display:block;font-size:0.8rem;margin-top:4px;">Existing Person ID</label>
+        <input type="number" name="person_id" style="width:100%;padding:6px;" />
+        <div style="text-align:center;margin:6px 0;font-size:0.7rem;">— OR —</div>
+        <label style="display:block;font-size:0.8rem;">First Name</label>
+        <input type="text" name="first_name" style="width:100%;padding:6px;" />
+        <label style="display:block;font-size:0.8rem;">Last Name</label>
+        <input type="text" name="last_name" style="width:100%;padding:6px;" />
+        <label style="display:block;font-size:0.8rem;margin-top:4px;">Role</label>
+        <select name="role" style="width:100%;padding:6px;">
+          <option value="suspect">Suspect</option>
+            <option value="victim">Victim</option>
+            <option value="witness">Witness</option>
+        </select>
+        <button class="btn" style="margin-top:8px;width:100%;" type="submit">Add / Link</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="tab-evidence" class="tab-panel">
+  <div class="card flex">
+    <div class="grow">
+      <h2 style="margin-top:0;">Evidence</h2>
+      <ul class="list-unstyled">
+        {% for ev in case.evidence_items.all %}
+        <li><strong>{{ ev.code }}</strong> – {{ ev.description|default:'(no description)' }}</li>
+        {% empty %}
+        <li class="muted">No evidence recorded.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div style="flex:1 1 240px;max-width:340px;">
+      <h3 style="margin-top:0;">Add Evidence</h3>
+      <form method="post" action="{% url 'case-add-evidence' case.id %}">
+        {% csrf_token %}
+        <label style="display:block;font-size:0.8rem;margin-top:4px;">Code</label>
+        <input required name="code" style="width:100%;padding:6px;" />
+        <label style="display:block;font-size:0.8rem;margin-top:4px;">Description</label>
+        <input name="description" style="width:100%;padding:6px;" />
+        <button class="btn" style="margin-top:8px;width:100%;" type="submit">Add</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="tab-history" class="tab-panel">
+  <div class="card">
+    <h2 style="margin-top:0;">Status History</h2>
+    <table>
+      <thead><tr><th>When</th><th>From</th><th>To</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for h in case.status_history.all %}
+        <tr>
+          <td>{{ h.changed_at }}</td>
+          <td>{{ h.old_status }}</td>
+          <td>{{ h.new_status }}</td>
+          <td>{{ h.reason|default:'—' }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">No history.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="alert"></div>
+
+<script>
+  // Tab logic
+  document.querySelectorAll('#caseTabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#caseTabs button').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  function showToast(msg, ok=true){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.style.background= ok? '#323232':'#b71c1c';
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 3200);
+  }
+
+  // Inline editing (title & description)
+  function enableInline(el){
+    const field = el.dataset.field;
+    const original = el.innerText.trim();
+    const multiline = field === 'description';
+    const input = multiline ? document.createElement('textarea') : document.createElement('input');
+    input.value = original === '(No Title)' || original === '(No description)' ? '' : original;
+    input.style.width='100%';
+    input.style.minHeight = multiline ? '120px':'auto';
+    input.style.fontSize = multiline ? '0.95rem':'1.1rem';
+    input.style.fontFamily='inherit';
+    el.replaceWith(input);
+    input.focus();
+    const save = () => {
+      const val = input.value.trim();
+      fetch('/api/cases/{{ case.id }}/', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+        body: JSON.stringify({[field]: val})
+      }).then(r=>r.json()).then(data=>{
+        const span = document.createElement('div');
+        span.id = el.id; span.className = el.className; span.dataset.field=field; span.title='Click to edit';
+        span.innerHTML = (val|| (field==='title'?'(No Title)':'(No description)')).replace(/\n/g,'<br>');
+        input.replaceWith(span);
+        span.addEventListener('click', ()=>enableInline(span));
+        showToast('Saved');
+      }).catch(()=>{
+        showToast('Save failed', false);
+      });
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e=>{ if(!multiline && e.key==='Enter'){ e.preventDefault(); input.blur(); } if(e.key==='Escape'){ input.value=original; input.blur(); }});
+  }
+  ['case-title','case-description'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.addEventListener('click', ()=>enableInline(el));
+  });
+
+  function changeStatus(form){
+    const fd = new FormData(form);
+    fetch(form.action, {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd})
+      .then(r=>r.json())
+      .then(data=>{ if(data.status){location.reload();} else {showToast(data.detail||'Status updated');}})
+      .catch(()=>showToast('Error updating status', false));
+    return false;
+  }
+</script>
+{% endblock %}
