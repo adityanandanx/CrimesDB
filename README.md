@@ -1,6 +1,6 @@
 # Criminal Case Management
 
-## Setup
+## Setup (SQLite quick start)
 
 ```bash
 uv sync
@@ -8,6 +8,29 @@ uv run python manage.py migrate
 uv run python manage.py createsuperuser --username admin --email admin@example.com
 uv run python manage.py runserver 0.0.0.0:8000
 ```
+
+## Postgres (Docker) Setup
+
+The project now supports Postgres via Docker.
+
+```bash
+docker compose up -d --build
+# Run migrations inside the web container
+docker compose exec web uv run python manage.py migrate
+docker compose exec web uv run python manage.py createsuperuser --username admin --email admin@example.com
+```
+
+Environment variables (with defaults) used in `settings.py`:
+
+```
+POSTGRES_DB=criminal
+POSTGRES_USER=criminal
+POSTGRES_PASSWORD=criminal
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+```
+
+Fallback: Set `DB_ENGINE=django.db.backends.sqlite3` to force SQLite.
 
 ## Features
 

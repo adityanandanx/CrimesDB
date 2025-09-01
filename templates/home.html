@@ -2,8 +2,8 @@
 <h1>Welcome</h1>
 <p>This is the Criminal Case Management prototype.</p>
 <p>
-  {% if user.is_authenticated %} Go to <a href="/dashboard/">Dashboard</a>. {%
-  else %} Please <a href="/login/">login</a> to continue. {% endif %}
+  {% if user.is_authenticated %} Go to <a href="/dashboard/">Dashboard</a>.
+  <br />{% else %} Please <a href="/login/">login</a> to continue. {% endif %}
 </p>
 <ul>
   <li><a href="/incidents/">Incidents</a></li>

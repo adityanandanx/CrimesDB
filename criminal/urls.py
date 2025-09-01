@@ -41,6 +41,7 @@ from crimes.views import (
     HomeView,
 )
 from django.contrib.auth import views as auth_views
+from users.views import logout_view
 
 router = DefaultRouter()
 router.register(r"incidents", IncidentViewSet, basename="incident")
@@ -55,7 +56,7 @@ urlpatterns = [
         auth_views.LoginView.as_view(template_name="registration/login.html"),
         name="login",
     ),
-    path("logout/", auth_views.LogoutView.as_view(next_page="/login/"), name="logout"),
+    path("logout/", logout_view, name="logout"),
     path("accounts/login/", RedirectView.as_view(url="/login/", permanent=False)),
     path("api/", include(router.urls)),
     path(
