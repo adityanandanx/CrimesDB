@@ -76,27 +76,50 @@ WSGI_APPLICATION = "criminal.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# Priority order:
+# 1. DATABASE_URL (e.g. supplied by Render managed Postgres: postgres://user:pass@host:port/dbname?sslmode=require)
+# 2. Individual POSTGRES_* env vars (legacy / docker-compose)
+# 3. Fallback to SQLite for local dev when DB_ENGINE != postgresql
+from urllib.parse import urlparse, parse_qs
 
-DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
-if DB_ENGINE.endswith("postgresql"):
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    parsed = urlparse(db_url)
     DATABASES = {
         "default": {
-            "ENGINE": DB_ENGINE,
-            "NAME": os.getenv("POSTGRES_DB", "criminal"),
-            "USER": os.getenv("POSTGRES_USER", "criminal"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "criminal"),
-            "HOST": os.getenv("POSTGRES_HOST", "db"),
-            "PORT": int(os.getenv("POSTGRES_PORT", "5432")),
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": parsed.path.lstrip("/"),
+            "USER": parsed.username,
+            "PASSWORD": parsed.password,
+            "HOST": parsed.hostname,
+            "PORT": parsed.port or 5432,
         }
     }
+    # Honor sslmode=require if present (Render sets this by default)
+    qs = parse_qs(parsed.query)
+    sslmode = qs.get("sslmode", [os.getenv("DB_SSLMODE", "")])[0]
+    if sslmode:
+        DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = sslmode
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+    DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
+    if DB_ENGINE.endswith("postgresql"):
+        DATABASES = {
+            "default": {
+                "ENGINE": DB_ENGINE,
+                "NAME": os.getenv("POSTGRES_DB", "criminal"),
+                "USER": os.getenv("POSTGRES_USER", "criminal"),
+                "PASSWORD": os.getenv("POSTGRES_PASSWORD", "criminal"),
+                "HOST": os.getenv("POSTGRES_HOST", "db"),
+                "PORT": int(os.getenv("POSTGRES_PORT", "5432")),
+            }
         }
-    }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
 
 
 # Password validation
