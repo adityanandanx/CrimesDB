@@ -13,6 +13,7 @@ SLEEP_SECONDS = float(os.getenv("DB_SLEEP_SECONDS", "2"))
 
 db_url = os.getenv("DATABASE_URL")
 
+
 def attempt_once():
     if db_url:
         psycopg.connect(db_url).close()
@@ -33,6 +34,7 @@ def attempt_once():
     if sslmode:
         conninfo["sslmode"] = sslmode
     psycopg.connect(**conninfo).close()
+
 
 for attempt in range(1, MAX_ATTEMPTS + 1):
     try:
